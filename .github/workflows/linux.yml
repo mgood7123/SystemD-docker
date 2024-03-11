@@ -120,7 +120,7 @@ jobs:
 
       - name: save image to disk
         run: |
-          sudo docker image save -o ./ubuntu_systemd.tar git_local_ubuntu:23.10
+          docker image save -o ./ubuntu_systemd.tar git_local_ubuntu:23.10
 
       - name: list files
         run: |
