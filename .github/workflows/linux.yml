@@ -1,0 +1,128 @@
+name: linux
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+  build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+
+    runs-on: ${{ matrix.os }}
+
+    name: ${{ matrix.name }}
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      - name: uncompress docker image
+        run: |
+          xz -d ./ubuntu.tar.xz
+
+      - name: load docker image
+        run: |
+          sudo docker image load -i ./ubuntu.tar
+
+      - name: create docker container
+        run: |
+          sudo docker container create --user ubuntu --workdir /home/ubuntu --init --tty --tmpfs /tmp --ulimit nofile=262144:262144 --name git_local_ubuntu git_local_ubuntu:23.10
+
+      - name: start docker container
+        run: |
+          sudo docker container start git_local_ubuntu
+
+      - name: allow ubuntu user to sudo
+        run: |
+          sudo docker container exec --user root git_local_ubuntu bash -c "echo 'ubuntu ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/ubuntu"
+
+      - name: update packages
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "sudo apt update"
+
+      - name: install apt-utils
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "sudo apt install -y apt-utils"
+
+      - name: install perl-readline
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "sudo apt install -y libterm-readline-gnu-perl"
+
+      - name: install systemd
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "sudo apt install -y systemd systemd-sysv systemd-dev"
+
+      - name: boot systemd - commit image
+        run: |
+          sudo docker container commit git_local_ubuntu git_local_ubuntu:23.10
+
+      - name: boot systemd - stop container
+        run: |
+          sudo docker container stop git_local_ubuntu
+
+      - name: boot systemd - remove container
+        run: |
+          sudo docker container rm git_local_ubuntu
+
+      - name: boot systemd - host remount cgroup
+        run: |
+          sudo mount -o remount,rw,nosuid,nodev,noexec,relatime /sys/fs/cgroup
+
+      - name: boot systemd - create systemd container
+        run: |
+          sudo docker container create --user root --workdir /home/root --tmpfs /tmp --tty --cap-add SYS_ADMIN --cap-add NET_ADMIN --cgroup-parent docker.slice --security-opt apparmor:unconfined --security-opt seccomp=unconfined --ulimit nofile=262144:262144 -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns host --name git_local_ubuntu git_local_ubuntu:23.10 /sbin/init
+
+      - name: boot systemd - start systemd container
+        run: |
+          sudo docker container start git_local_ubuntu
+          sudo docker container exec git_local_ubuntu bash -c "sleep 5 ; systemctl --wait is-system-running || sysctl --failed"
+
+      - name: boot systemd - verify
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "systemctl status"
+
+      - name: boot systemd - create user session
+        run: |
+          sudo docker container exec git_local_ubuntu bash -c "mkdir -p /run/user/\$(id -u ubuntu)"
+          sudo docker container exec git_local_ubuntu bash -c "chown ubuntu:ubuntu /run/user/\$(id -u ubuntu)"
+          sudo docker container exec git_local_ubuntu bash -c "systemctl start user@\$(id -u ubuntu)"
+
+      - name: SYSTEMD - install polkitd
+        run: |
+          sudo docker container exec --user ubuntu --workdir /home/ubuntu git_local_ubuntu bash -c "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/\$(id -u ubuntu)/bus systemd-run --user --scope --collect /bin/bash -c \"sudo apt install -y polkitd pkexec polkitd-pkla\""
+
+      - name: reboot systemd - commit image
+        run: |
+          sudo docker container commit git_local_ubuntu git_local_ubuntu:23.10
+
+      - name: reboot systemd - stop container
+        run: |
+          sudo docker container stop git_local_ubuntu
+
+      - name: reboot systemd - remove container
+        run: |
+          sudo docker container rm git_local_ubuntu
+
+      - name: save image to disk
+        run: |
+          sudo docker image save -o ./ubuntu_systemd.tar git_local_ubuntu:23.10
+
+      - uses: "create release"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Ubuntu SYSTEMD"
+          files: |
+            ./ubuntu_systemd.tar
