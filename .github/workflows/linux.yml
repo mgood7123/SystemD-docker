@@ -126,16 +126,16 @@ jobs:
         run: |
           ls -l
 
-      # https://github.com/softprops/action-gh-release
+      # https://github.com/ncipollo/release-action
       #
       # https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
       #
       - name: "create release"
-        uses: "softprops/action-gh-release@v2"
+        uses: "ncipollo/release-action@v1"
         with:
           name: "Ubuntu SYSTEMD"
-          tag_name: "latest"
-          generate_release_notes: false
-          make_latest: true
-          files: |
+          tag: "1.0"
+          makeLatest: true
+          generateReleaseNotes: false
+          artifacts: |
             ./ubuntu_systemd.tar
