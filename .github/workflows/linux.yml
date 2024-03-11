@@ -122,6 +122,10 @@ jobs:
         run: |
           sudo docker image save -o ./ubuntu_systemd.tar git_local_ubuntu:23.10
 
+      - name: list files
+        run: |
+          ls -l
+
       # https://github.com/softprops/action-gh-release
       #
       # https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
