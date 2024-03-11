@@ -24,6 +24,9 @@ jobs:
 
     name: ${{ matrix.name }}
 
+    permissions:
+      contents: write
+
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
@@ -119,11 +122,16 @@ jobs:
         run: |
           sudo docker image save -o ./ubuntu_systemd.tar git_local_ubuntu:23.10
 
-      - uses: "create release"
+      # https://github.com/softprops/action-gh-release
+      #
+      # https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+      #
+      - name:
+        uses: "softprops/action-gh-release@v2"
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: false
-          title: "Ubuntu SYSTEMD"
+          name: "Ubuntu SYSTEMD"
+          tag_name: "latest"
+          generate_release_notes: true
+          make_latest: true
           files: |
             ./ubuntu_systemd.tar
