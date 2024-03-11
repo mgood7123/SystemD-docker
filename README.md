@@ -35,13 +35,9 @@ DOCKER_EXEC_COMMAND " SYSTEMD_EXEC_COMMAND \" <command (double escaped)> cmake -
 copy and paste the following under a `ubuntu-latest` github runner
 
 ```yaml
-      - name: download Docker image - 'Ubuntu SystemD'
+      - name: download and load Docker image - 'Ubuntu SYSTEMD'
         run: |
-          <download tool> <URL to release ubuntu_systemd.tar archive>
-
-      - name: load docker image
-        run: |
-          sudo docker image load -i ./ubuntu_systemd.tar
+          sudo sh -c 'curl -L https://github.com/mgood7123/SystemD-docker/releases/download/1.0/ubuntu_systemd.tar | docker image load'
 
       # THIS ONLY NEED TO BE DONE ONCE
       #
@@ -120,13 +116,9 @@ for this example we shall install `flatpak`
 `flatpak` requires a systemd reboot in order to complete its installation
 
 ```yaml
-      - name: download Docker image - 'Ubuntu SystemD'
+      - name: download and load Docker image - 'Ubuntu SYSTEMD'
         run: |
-          <download tool> <URL to release ubuntu_systemd.tar archive>
-
-      - name: load docker image
-        run: |
-          sudo docker image load -i ./ubuntu_systemd.tar
+          sudo sh -c 'curl -L https://github.com/mgood7123/SystemD-docker/releases/download/1.0/ubuntu_systemd.tar | docker image load'
 
       # THIS ONLY NEED TO BE DONE ONCE
       #
